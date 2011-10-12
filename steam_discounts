@@ -13,10 +13,10 @@ import urllib
 
 class Entry(object):
 	def __init__(self):
-		self.title = ""
-		self.orig_price = -1
-		self.discount = -1
-		self.price = -1
+		self.title = u''
+		self.orig_price = u''
+		self.discount = u''
+		self.price = u''
 	
 class DiscountsParser(HTMLParser.HTMLParser):
 	def __init__(self):
@@ -29,6 +29,14 @@ class DiscountsParser(HTMLParser.HTMLParser):
 		self.in_discount_pct_ = False
 		self.in_tab_price_ = False
 		self.in_strike_ = False
+	
+	@staticmethod
+	def entity2uni(name):
+		return unichr(htmlentitydefs.name2codepoint[name])
+
+	@staticmethod
+	def ref2uni(ref):
+		return unichr(int(ref))
 
 	def handle_starttag(self, tag, attrs):
 		attrs_map = dict(attrs)
@@ -62,27 +70,28 @@ class DiscountsParser(HTMLParser.HTMLParser):
 		elif tag == 'strike':
 			self.in_strike_ = False
 
-	def handle_data(self, data):
+	def append_text(self, text):
 		if self.in_h4_:
-			self.current_entry_.title += data.strip().decode('utf-8')
+			self.current_entry_.title += text
 		elif self.in_discount_pct_:
-			self.current_entry_.discount = int(data.strip()[:-1])
+			self.current_entry_.discount += text
 		elif self.in_strike_:
-			num = data.strip().replace(',', '.')
-			if len(num) > 0:
-				self.current_entry_.orig_price = float(num)
+			self.current_entry_.orig_price += text
 		elif self.in_tab_price_:
 			# Note we only enter here if not in <strike>
-			num = data.strip().replace(',', '.')
-			if len(num) > 0:
-				self.current_entry_.price = float(num)
+			self.current_entry_.price += text
+
+	def handle_data(self, data):
+		self.append_text(data.strip().decode('utf-8'))
 	
 	def handle_entityref(self, name):
-		if self.in_h4_:
-			self.current_entry_.title += unichr(htmlentitydefs.name2codepoint[name])
+		self.append_text(self.entity2uni(name))
+	
+	def handle_charref(self, ref):
+		self.append_text(self.ref2uni(ref))
 	
 	def get_entries(self):
-		return self.entries_
+		return self.entries_[:]
 
 if __name__ == '__main__':
 	# Find the number of discounts first.
@@ -111,12 +120,10 @@ if __name__ == '__main__':
 	entries = discounts_parser.get_entries()
 	child = subprocess.Popen(['less'], stdin=subprocess.PIPE)
 	for e in entries:
-		print >>child.stdin, (u'%s .%s %*.2f€ (%*.2f€ %d%%)' % (
+		print >>child.stdin, (u'%s ...%s %7s [%7s %s]' % (
 			e.title[:title_width],
 			'.' * (title_width - len(e.title)),
-			6,
 			e.price,
-			6,
 			e.orig_price,
 			e.discount,
 			)).encode('utf-8')
