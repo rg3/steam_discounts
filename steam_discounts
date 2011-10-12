@@ -1,0 +1,120 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+import HTMLParser
+import htmlentitydefs
+import re
+import subprocess
+import sys
+import urllib
+
+class Entry(object):
+	def __init__(self):
+		self.title = ""
+		self.orig_price = -1
+		self.discount = -1
+		self.price = -1
+	
+class DiscountsParser(HTMLParser.HTMLParser):
+	def __init__(self):
+		HTMLParser.HTMLParser.__init__(self)
+
+		self.current_entry_ = None
+		self.entries_ = []
+
+		self.in_h4_ = False
+		self.in_discount_pct_ = False
+		self.in_tab_price_ = False
+		self.in_strike_ = False
+
+	def handle_starttag(self, tag, attrs):
+		attrs_map = dict(attrs)
+
+		if tag == 'h4':
+			# First field to extract, hence new entry.
+			self.in_h4_ = True
+			self.current_entry_ = Entry()
+
+		elif tag == 'div':
+			if attrs_map.get('class', '') == 'tab_discount discount_pct':
+				self.in_discount_pct_ = True
+			elif attrs_map.get('class', '') == 'tab_price':
+				self.in_tab_price_ = True
+
+		elif tag == 'strike':
+			self.in_strike_ = True
+	
+	def handle_endtag(self, tag):
+		if tag == 'h4':
+			self.in_h4_ = False
+
+		elif tag == 'div':
+			if self.in_discount_pct_:
+				self.in_discount_pct_ = False
+			elif self.in_tab_price_:
+				self.in_tab_price_ = False
+				# This was the last field to extract.
+				self.entries_.append(self.current_entry_)
+
+		elif tag == 'strike':
+			self.in_strike_ = False
+
+	def handle_data(self, data):
+		if self.in_h4_:
+			self.current_entry_.title += data.strip().decode('utf-8')
+		elif self.in_discount_pct_:
+			self.current_entry_.discount = int(data.strip()[:-1])
+		elif self.in_strike_:
+			num = data.strip().replace(',', '.')
+			if len(num) > 0:
+				self.current_entry_.orig_price = float(num)
+		elif self.in_tab_price_:
+			# Note we only enter here if not in <strike>
+			num = data.strip().replace(',', '.')
+			if len(num) > 0:
+				self.current_entry_.price = float(num)
+	
+	def handle_entityref(self, name):
+		if self.in_h4_:
+			self.current_entry_.title += unichr(htmlentitydefs.name2codepoint[name])
+	
+	def get_entries(self):
+		return self.entries_
+
+if __name__ == '__main__':
+	# Find the number of discounts first.
+	stream = urllib.urlopen('http://store.steampowered.com/')
+	page = stream.read()
+	stream.close()
+
+	mo = re.search(r"javascript:PageTab\('Discounts', *\d+, *(\d+)", page)
+	if mo is None:
+		sys.exit('FATAL: unable to find the number of discounts')
+	total_discounts = int(mo.group(1))
+
+	# Retrieve the discounts.
+	stream = urllib.urlopen(
+		'http://store.steampowered.com/search/tab?bHoverEnabled=true' +
+		'&style=&navcontext=1_4_4_&tab=Discounts&start=0' +
+		'&count=%d' % total_discounts)
+	page = stream.read()
+	stream.close()
+
+	discounts_parser = DiscountsParser()
+	discounts_parser.feed(page)
+
+	# Print them on screen
+	title_width = 40
+	entries = discounts_parser.get_entries()
+	child = subprocess.Popen(['less'], stdin=subprocess.PIPE)
+	for e in entries:
+		print >>child.stdin, (u'%s .%s %*.2f€ (%*.2f€ %d%%)' % (
+			e.title[:title_width],
+			'.' * (title_width - len(e.title)),
+			6,
+			e.price,
+			6,
+			e.orig_price,
+			e.discount,
+			)).encode('utf-8')
+	child.stdin.close()
+	child.wait()

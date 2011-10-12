@@ -1,0 +1,3 @@
+steam_discounts is a small command line application written in Python that will
+print the current Steam discounts to your terminal so you don't have to clic
+around the website.
