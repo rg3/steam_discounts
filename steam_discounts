@@ -6,10 +6,6 @@
 #
 import HTMLParser
 import htmlentitydefs
-import re
-import subprocess
-import sys
-import urllib
 
 class Entry(object):
     def __init__(self):
@@ -111,6 +107,12 @@ class DiscountsParser(HTMLParser.HTMLParser):
 
 # Entry point.
 if __name__ == '__main__':
+    # Extra imports
+    import urllib
+    import re
+    import subprocess
+    import sys
+
     # Find the number of discounts first.
     conn = urllib.urlopen('http://store.steampowered.com/')
     page = conn.read()
