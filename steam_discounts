@@ -13,6 +13,10 @@ class Entry(object):
         self.orig_price = u''
         self.discount = u''
         self.price = u''
+
+    # Entries can be sorted by title.
+    def __cmp__(self, other):
+        return cmp(self.title, other.title)
     
 class DiscountsParser(HTMLParser.HTMLParser):
     def __init__(self):
@@ -136,7 +140,7 @@ if __name__ == '__main__':
     # Print them on screen.
     title_width = 40
     child = subprocess.Popen(['less'], stdin=subprocess.PIPE)
-    for entry in discounts_parser:
+    for entry in sorted(discounts_parser):
         print >>child.stdin, (u'%s ...%s %7s [%7s %s]' % (
             entry.title[:title_width],
             '.' * (title_width - len(entry.title)),
