@@ -16,7 +16,7 @@ class Entry(object):
 
     # Entries can be sorted by title.
     def __cmp__(self, other):
-        return cmp(self.title, other.title)
+        return cmp(self.title.lower(), other.title.lower())
     
 class DiscountsParser(HTMLParser.HTMLParser):
     def __init__(self):
