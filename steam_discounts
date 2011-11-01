@@ -113,33 +113,25 @@ class DiscountsParser(HTMLParser.HTMLParser):
 if __name__ == '__main__':
     # Extra imports
     import urllib
-    import re
     import subprocess
     import sys
 
-    # Find the number of discounts first.
-    conn = urllib.urlopen('http://store.steampowered.com/')
-    page = conn.read()
-    conn.close()
-
-    mo = re.search(r"javascript:PageTab\('Discounts', *\d+, *(\d+)", page)
-    if mo is None:
-        sys.exit('FATAL: unable to find the number of discounts')
-    total_discounts = int(mo.group(1))
+    # Constants.
+    MAX_DISCOUNTS = 1000
+    TITLE_WIDTH = 40
 
     # Retrieve the discounts.
     conn = urllib.urlopen(
         'http://store.steampowered.com/search/tab?bHoverEnabled=true&style=' +
-        '&navcontext=1_4_4_&tab=Discounts&start=0&count=%d' % total_discounts)
+        '&navcontext=1_4_4_&tab=Discounts&start=0&count=%d' % MAX_DISCOUNTS)
     page = conn.read()
     conn.close()
 
+    # Parse them.
     discounts_parser = DiscountsParser()
     discounts_parser.feed(page)
 
     # Print them on screen, piping the output to "less".
-    TITLE_WIDTH = 40
-
     child = subprocess.Popen(['less'], stdin=subprocess.PIPE)
     for entry in sorted(discounts_parser):
         print >>child.stdin, (u'%s ...%s %7s [%7s %s]' % (
