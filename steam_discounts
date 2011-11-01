@@ -137,13 +137,14 @@ if __name__ == '__main__':
     discounts_parser = DiscountsParser()
     discounts_parser.feed(page)
 
-    # Print them on screen.
-    title_width = 40
+    # Print them on screen, piping the output to "less".
+    TITLE_WIDTH = 40
+
     child = subprocess.Popen(['less'], stdin=subprocess.PIPE)
     for entry in sorted(discounts_parser):
         print >>child.stdin, (u'%s ...%s %7s [%7s %s]' % (
-            entry.title[:title_width],
-            '.' * (title_width - len(entry.title)),
+            entry.title[:TITLE_WIDTH],
+            '.' * (TITLE_WIDTH - len(entry.title)),
             entry.price,
             entry.orig_price,
             entry.discount,
