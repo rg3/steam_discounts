@@ -112,6 +112,7 @@ class DiscountsParser(HTMLParser.HTMLParser):
 # Program entry point.
 if __name__ == '__main__':
     # Extra imports
+    import os
     import urllib
     import subprocess
     import sys
@@ -131,16 +132,25 @@ if __name__ == '__main__':
     discounts_parser = DiscountsParser()
     discounts_parser.feed(page)
 
-    # Print them on screen, paging the output if appropriate.
-    cmd = 'less' if sys.stdout.isatty() else 'cat'
-    pager = subprocess.Popen([cmd], stdin=subprocess.PIPE)
+    # Compose output.
+    output = ''
     for entry in sorted(discounts_parser):
-        print >>pager.stdin, (u'%s ...%s %7s [%7s %s]' % (
-            entry.title[:TITLE_WIDTH],
-            '.' * (TITLE_WIDTH - len(entry.title)),
-            entry.price,
-            entry.orig_price,
-            entry.discount,
-            )).encode('utf-8')
-    pager.stdin.close()
-    pager.wait()
+        output += (u'%s ...%s %7s [%7s %s]\n' %
+                    (
+                        entry.title[:TITLE_WIDTH],
+                        '.' * (TITLE_WIDTH - len(entry.title)),
+                        entry.price,
+                        entry.orig_price,
+                        entry.discount,
+                    )
+                  ).encode('utf-8')
+
+    # Print it, paging it if appropriate.
+    if sys.stdout.isatty():
+        cmd = os.getenv('PAGER', default='less')
+        pager = subprocess.Popen(cmd.split(), stdin=subprocess.PIPE)
+        pager.stdin.write(output)
+        pager.stdin.close()
+        pager.wait()
+    else:
+        sys.stdout.write(output)
