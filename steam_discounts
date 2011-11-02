@@ -109,7 +109,7 @@ class DiscountsParser(HTMLParser.HTMLParser):
     def __contains__(self, item):
         return self.entries_.__contains__(item)
 
-# Entry point.
+# Program entry point.
 if __name__ == '__main__':
     # Extra imports
     import urllib
@@ -131,15 +131,16 @@ if __name__ == '__main__':
     discounts_parser = DiscountsParser()
     discounts_parser.feed(page)
 
-    # Print them on screen, piping the output to "less".
-    child = subprocess.Popen(['less'], stdin=subprocess.PIPE)
+    # Print them on screen, paging the output if appropriate.
+    cmd = 'less' if sys.stdout.isatty() else 'cat'
+    pager = subprocess.Popen([cmd], stdin=subprocess.PIPE)
     for entry in sorted(discounts_parser):
-        print >>child.stdin, (u'%s ...%s %7s [%7s %s]' % (
+        print >>pager.stdin, (u'%s ...%s %7s [%7s %s]' % (
             entry.title[:TITLE_WIDTH],
             '.' * (TITLE_WIDTH - len(entry.title)),
             entry.price,
             entry.orig_price,
             entry.discount,
             )).encode('utf-8')
-    child.stdin.close()
-    child.wait()
+    pager.stdin.close()
+    pager.wait()
