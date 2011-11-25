@@ -113,18 +113,27 @@ class DiscountsParser(HTMLParser.HTMLParser):
 if __name__ == '__main__':
     # Extra imports
     import os
-    import urllib
+    import re
     import subprocess
     import sys
+    import urllib
 
     # Constants.
-    MAX_DISCOUNTS = 1000
     TITLE_WIDTH = 40
+
+    # Get the number of discounts first.
+    conn = urllib.urlopen('http://store.steampowered.com/')
+    page = conn.read()
+    conn.close()
+    mo = re.search(r'<span id="tab_Discounts_count_start">.*?of +(\d+)', page)
+    if mo is None:
+        sys.exit('ERROR: unable to extract the total number of discounts')
+    max_discounts = int(mo.group(1))
 
     # Retrieve the discounts.
     conn = urllib.urlopen(
         'http://store.steampowered.com/search/tab?bHoverEnabled=true&style=' +
-        '&navcontext=1_4_4_&tab=Discounts&start=0&count=%d' % MAX_DISCOUNTS)
+        '&navcontext=1_4_4_&tab=Discounts&start=0&count=%d' % max_discounts)
     page = conn.read()
     conn.close()
 
