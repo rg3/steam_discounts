@@ -126,9 +126,14 @@ if __name__ == '__main__':
     page = conn.read()
     conn.close()
     mo = re.search(r'<span id="tab_Discounts_count_start">.*?of +(\d+)', page)
-    if mo is None:
-        sys.exit('ERROR: unable to extract the total number of discounts')
-    max_discounts = int(mo.group(1))
+    if mo is not None:
+        max_discounts = int(mo.group(1))
+    else:
+        # Only a few discounts, no "scrolling".
+        max_discounts = page.count('tab_row_Discounts_')
+
+    if max_discounts <= 0:
+        sys.exit('ERROR: invalid number of discounts found: %d' % (max_discounts, ))
 
     # Retrieve the discounts.
     conn = urllib.urlopen(
