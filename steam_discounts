@@ -147,7 +147,7 @@ if __name__ == '__main__':
     discounts_parser.feed(page)
 
     # Compose output.
-    output = ''
+    output = 'Listing %d discounts.\n' % (max_discounts, )
     for entry in sorted(discounts_parser):
         output += (u'%s ...%s %7s [%7s %s]\n' %
                     (
