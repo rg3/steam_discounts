@@ -138,7 +138,7 @@ if __name__ == '__main__':
     # Retrieve the discounts.
     conn = urllib.urlopen(
         'http://store.steampowered.com/search/tab?bHoverEnabled=true&style=' +
-        '&navcontext=1_4_4_&tab=Discounts&start=0&count=%d' % max_discounts)
+        '&navcontext=1_4_4_&tab=Discounts&start=0&count=%d' % (max_discounts, ))
     page = conn.read()
     conn.close()
 
