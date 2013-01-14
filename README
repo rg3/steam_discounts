@@ -1,3 +1,6 @@
 steam_discounts is a small command line application written in Python that will
 print the current Steam discounts to your terminal so you don't have to clic
 around the website.
+
+It usually breaks in special sale periods when they change the page format, but
+it works fine for most of the year.
