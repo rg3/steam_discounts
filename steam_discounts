@@ -6,6 +6,7 @@
 #
 import HTMLParser
 import htmlentitydefs
+import itertools
 
 class Entry(object):
     def __init__(self):
@@ -120,46 +121,64 @@ if __name__ == '__main__':
 
     # Constants.
     TITLE_WIDTH = 40
+    MAX_BATCH_SIZE = 50
 
     # Get the number of discounts first.
-    conn = urllib.urlopen('http://store.steampowered.com/')
+    conn = urllib.urlopen('http://store.steampowered.com/search/?specials=1')
     page = conn.read()
     conn.close()
-    mo = re.search(r'<span id="tab_Discounts_count_start">.*?of +(\d+)', page)
+    mo = re.search(r'showing.*of +(\d+)', page)
     if mo is not None:
         max_discounts = int(mo.group(1))
     else:
-        # Only a few discounts, no "scrolling".
-        max_discounts = page.count('tab_row_Discounts_')
-
-    if max_discounts <= 0:
-        sys.exit('ERROR: invalid number of discounts found: %d' % (max_discounts, ))
+        sys.exit('ERROR: unable to obtain the number of discounts')
 
     # Retrieve the discounts.
-    conn = urllib.urlopen(
-        'http://store.steampowered.com/search/tab?bHoverEnabled=true&style=' +
-        '&navcontext=1_4_4_&tab=Discounts&start=0&count=%d' % (max_discounts, ))
-    page = conn.read()
-    conn.close()
+    obtained = 0
+    remaining = max_discounts
+    batches = []
 
-    # Parse them.
-    discounts_parser = DiscountsParser()
-    discounts_parser.feed(page)
+    while remaining > 0:
+        # Get batch page.
+        batch_size = min(remaining, MAX_BATCH_SIZE)
+        discounts_url = \
+            'http://store.steampowered.com/search/tab?bHoverEnabled=true&' + \
+            'style=&navcontext=1_4_4_&tab=Discounts&start=%d&count=%d' % \
+            (obtained, batch_size)
+
+        conn = urllib.urlopen(discounts_url)
+        page = conn.read()
+        conn.close()
+
+        # Parse discounts.
+        discounts_parser = DiscountsParser()
+        discounts_parser.feed(page)
+
+        # Compose output.
+        batches.append(discounts_parser)
+        # Update data
+        received_size = len(discounts_parser)
+        obtained += received_size
+        remaining -= received_size
+
+        # The server sometimes "lies" about the exact number of discounts.
+        if received_size < batch_size:
+            break
 
     # Compose output.
-    output = 'Listing %d discounts.\n' % (max_discounts, )
-    for entry in sorted(discounts_parser):
+    output = 'Listing %d discounts.\n' % (obtained, )
+    for entry in sorted(itertools.chain(*batches)):
         output += (u'%s ...%s %7s [%7s %s]\n' %
-                    (
-                        entry.title[:TITLE_WIDTH],
-                        '.' * (TITLE_WIDTH - len(entry.title)),
-                        entry.price,
-                        entry.orig_price,
-                        entry.discount,
+                (
+                    entry.title[:TITLE_WIDTH],
+                    '.' * (TITLE_WIDTH - len(entry.title)),
+                    entry.price,
+                    entry.orig_price,
+                    entry.discount,
                     )
-                  ).encode('utf-8')
+                ).encode('utf-8')
 
-    # Print it, paging it if appropriate.
+    # Print output, paging it if appropriate.
     if sys.stdout.isatty():
         cmd = os.getenv('PAGER', default='less')
         pager = subprocess.Popen(cmd.split(), stdin=subprocess.PIPE)
