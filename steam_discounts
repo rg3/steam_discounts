@@ -179,13 +179,12 @@ if __name__ == '__main__':
     # Compose output.
     output = 'Listing %d discounts.\n' % (obtained, )
     for entry in sorted(itertools.chain(*batches)):
-        output += (u'%s ...%s %7s [%7s %s] -- %s\n' %
+        output += (u'%s ...%s %7s [%12s] -- %s\n' %
                 (
                     entry.title[:TITLE_WIDTH],
                     '.' * (TITLE_WIDTH - len(entry.title)),
                     entry.price,
-                    entry.orig_price,
-                    entry.discount,
+                    u'%7s %s' % (entry.orig_price, entry.discount),
                     entry.url,
                     )
                 ).encode('utf-8')
