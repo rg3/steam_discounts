@@ -165,6 +165,9 @@ if __name__ == '__main__':
         conn.close()
         page = page.decode(encoding)
 
+        # Debug.
+        #file('page%s.html' % (obtained, ), "w").write(page.encode('utf-8'))
+
         # Parse discounts.
         discounts_parser = DiscountsParser()
         discounts_parser.feed(page)
