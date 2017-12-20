@@ -7,6 +7,7 @@
 import HTMLParser
 import htmlentitydefs
 import itertools
+import re
 
 class Entry(object):
     def __init__(self):
@@ -14,6 +15,7 @@ class Entry(object):
         self.orig_price = u''
         self.discount = u''
         self.price = u''
+        self.url = u''
 
     # Entries can be sorted by title.
     def __cmp__(self, other):
@@ -21,6 +23,8 @@ class Entry(object):
     
 class DiscountsParser(HTMLParser.HTMLParser):
     def __init__(self):
+        self.url_re_ = re.compile(
+                r'^(http://store\.steampowered\.com/(?:app|sub)/\d+/)')
         HTMLParser.HTMLParser.__init__(self)
     
     @staticmethod
@@ -45,10 +49,15 @@ class DiscountsParser(HTMLParser.HTMLParser):
     def handle_starttag(self, tag, attrs):
         attrs_map = dict(attrs)
 
+        if tag == 'a':
+            match = self.url_re_.search(attrs_map.get('href', ''))
+            if match is not None:
+                # First field to extract, hence new entry.
+                self.current_entry_ = Entry()
+                self.current_entry_.url += match.group(1)
+
         if tag == 'h4':
-            # First field to extract, hence new entry.
             self.in_h4_ = True
-            self.current_entry_ = Entry()
 
         elif tag == 'div':
             if attrs_map.get('class', '') == 'tab_discount discount_pct':
@@ -170,13 +179,14 @@ if __name__ == '__main__':
     # Compose output.
     output = 'Listing %d discounts.\n' % (obtained, )
     for entry in sorted(itertools.chain(*batches)):
-        output += (u'%s ...%s %7s [%7s %s]\n' %
+        output += (u'%s ...%s %7s [%7s %s] -- %s\n' %
                 (
                     entry.title[:TITLE_WIDTH],
                     '.' * (TITLE_WIDTH - len(entry.title)),
                     entry.price,
                     entry.orig_price,
                     entry.discount,
+                    entry.url,
                     )
                 ).encode('utf-8')
 
