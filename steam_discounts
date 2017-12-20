@@ -20,6 +20,10 @@ class Entry(object):
     # Entries can be sorted by title.
     def __cmp__(self, other):
         return cmp(self.title.lower(), other.title.lower())
+
+    # Entries can be hashed by URL.
+    def __hash__(self):
+        return hash(self.url)
     
 class DiscountsParser(HTMLParser.HTMLParser):
     def __init__(self):
@@ -177,8 +181,9 @@ if __name__ == '__main__':
             break
 
     # Compose output.
-    output = 'Listing %d discounts.\n' % (obtained, )
-    for entry in sorted(itertools.chain(*batches)):
+    entries = sorted(list(set(itertools.chain(*batches))))
+    output = 'Listing %d discounts.\n' % (len(entries), )
+    for entry in entries:
         output += (u'%s ...%s %7s [%12s] -- %s\n' %
                 (
                     entry.title[:TITLE_WIDTH],
