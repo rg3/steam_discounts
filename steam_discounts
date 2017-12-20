@@ -121,7 +121,7 @@ if __name__ == '__main__':
 
     # Constants.
     TITLE_WIDTH = 40
-    MAX_BATCH_SIZE = 50
+    MAX_BATCH_SIZE = 10
 
     # Get the number of discounts first.
     conn = urllib.urlopen('http://store.steampowered.com/search/?specials=1')
