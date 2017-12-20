@@ -86,7 +86,7 @@ class DiscountsParser(HTMLParser.HTMLParser):
             self.current_entry_.price += text
 
     def handle_data(self, data):
-        self.append_text(data.strip().decode('utf-8'))
+        self.append_text(data.strip())
     
     def handle_entityref(self, name):
         self.append_text(self.entity2uni(name))
@@ -148,7 +148,9 @@ if __name__ == '__main__':
 
         conn = urllib.urlopen(discounts_url)
         page = conn.read()
+        encoding = conn.headers.getparam('charset')
         conn.close()
+        page = page.decode(encoding)
 
         # Parse discounts.
         discounts_parser = DiscountsParser()
